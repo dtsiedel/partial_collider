@@ -1,11 +1,13 @@
 import argparse
 import hashlib
 import io
+import string
 import pathlib
 
 
 def buffer_of(s: str):
     return io.BytesIO(str.encode(s, encoding='utf-8')).getbuffer()
+
 
 def hash_file(path: pathlib.Path, hasher) -> str:
     BUF_SIZE = 65536
@@ -16,6 +18,9 @@ def hash_file(path: pathlib.Path, hasher) -> str:
                 break
             hasher.update(data)
     return hasher.hexdigest()
+
+
+CHAR_CYCLE = list(string.ascii_lowercase + string.ascii_uppercase + string.digits) 
 
 
 def main():
@@ -49,9 +54,11 @@ def main():
     with open(args.payload_file, 'r') as payload:
         original = payload.read()
     iters = 0
+    current = '#'
     while True:
         hasher = hash_func()
-        the_str = original + "\n" + '#'*iters
+        next_char = CHAR_CYCLE[iters % len(CHAR_CYCLE)]
+        the_str = original + "\n" + current + next_char
         hasher.update(buffer_of(the_str))
 
         h = hasher.hexdigest()
@@ -60,6 +67,8 @@ def main():
             print(f'HIT! With {iters} iters.')
             break
         iters += 1
+        if next_char == CHAR_CYCLE[-1]:
+            current += next_char
 
     path = pathlib.Path(args.target_file)
     output_file = path.parent / (path.stem + "_mal" + path.suffix)
